@@ -49,11 +49,13 @@ def get_meta_analysis(df):
         denom = df[df["type"]=="time_signature"]["denominator"].iloc[0]
         clocks = df[df["type"]=="time_signature"]["clocks_per_click"].iloc[0]
         notated = df[df["type"]=="time_signature"]["notated_32nd_notes_per_beat"].iloc[0]
+        time_sig_count = len(df[df["type"]=="time_signature"].index)
     except:
         num = 0
         denom = 0
         clocks = 0
         notated = 0
+        time_sig_count = 0
     # key metrics
     try:
         key = df[df["type"]=="key_signature"]["key"].iloc[0]
@@ -63,18 +65,23 @@ def get_meta_analysis(df):
     try:
         tempo = df[df["type"]=="set_tempo"]["tempo"].iloc[0]
         bpm = tempo2bpm(tempo)
+        tempo_count = len(df[df["type"]=="set_tempo"].index)
     except:
         tempo = 0
         bpm = 0
+        tempo_count = 0
 
     return {
         "numerator": num,
         "denominator": denom,
         "clocks_per_click": clocks,
         "notated_32nd_notes_per_beat": notated,
+        "time_sig_count": time_sig_count,
         "key": key,
         "tempo": tempo,
-        "bpm": bpm.__round__()
+        "bpm": bpm.__round__(),
+        "tempo_count": tempo_count,
+
     }
 
 def get_note_analysis(df, ticks_per_beat):
