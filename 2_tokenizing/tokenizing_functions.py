@@ -1,4 +1,14 @@
+from os import walk
 import miditoolkit
+
+def get_file_and_dirnames(p):
+    f = []
+    d = []
+    for (dirpath, dirnames, filenames) in walk(p):
+        f.extend(filenames)
+        d.extend(dirnames)
+        break
+    return f,d
 
 def convert_to_note_items(path):
     midi_obj = miditoolkit.midi.parser.MidiFile(path)
