@@ -1,5 +1,6 @@
 0_data
 test_notebooks
+3_model/model_checkpoints
 
 .DS_Store
 .idea
