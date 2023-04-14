@@ -1,6 +1,8 @@
 0_data
 test_notebooks
-3_model/model_checkpoints
+3_model/out
+3_model/logs
+.ipynb_checkpoints
 
 .DS_Store
 .idea
