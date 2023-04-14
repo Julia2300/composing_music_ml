@@ -32,7 +32,7 @@ def trainer_gpt2_transformer(hyperparameters, tokenizer, data, dirs):
 
     # define model config and model
     config = GPT2Config(
-        vocab_size = tokenizer.vocab_size,
+        vocab_size = tokenizer.vocab_size+3,
         n_positions = hyperparameters["max_length"], # max seq length
         n_embd = hyperparameters["emb_dim"],
         n_head = hyperparameters["attention_heads"], 
