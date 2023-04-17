@@ -189,7 +189,7 @@ def write_midi(tokens, token2word, output_path):
                 triole_position = 0
                 n = 0
             if events[i+n+1]["name"] == 'Note-On' and \
-            events[i+n+2]["name"] == 'Note-Duration':
+            events[i+n+2]["name"] == 'Note-Duration' and events[i+n+2]["value"] != 'triole':
                 # pitch
                 pitch = int(events[i+n+1]["value"])
             else:
