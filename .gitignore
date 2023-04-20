@@ -1,4 +1,10 @@
-0_data
+0_data/0_raw_sets
+0_data/1_midi_sets
+0_data/2_analysis
+0_data/3_melody_sets
+0_data/4_preprocessed_sets
+0_data/99_test
+
 test_notebooks
 3_model/out
 3_model/logs
