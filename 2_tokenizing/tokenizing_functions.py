@@ -21,36 +21,37 @@ def get_file_and_dirnames(p):
         break
     return f,d
 
-def split_into_two_bar_items(item, duration, ticks_per_bar=TICKS_PER_BEAT*4):
+def split_into_max_len_items(item, duration, max_duration_in_bars, ticks_per_bar=TICKS_PER_BEAT*4):
     items = [] 
-    two_bars = duration // (2*ticks_per_bar)
-    rest_ticks = duration % (2*ticks_per_bar)
-    for i in range(two_bars):
+    full_lengths = duration // (max_duration_in_bars*ticks_per_bar)
+    rest_ticks = duration % (max_duration_in_bars*ticks_per_bar)
+    for i in range(full_lengths):
         items.append({
             "name": "Note",
-            "start": item.start + i*2*ticks_per_bar,
-            "end": item.start + (i+1)*2*ticks_per_bar,
+            "start": item.start + i*max_duration_in_bars*ticks_per_bar,
+            "end": item.start + (i+1)*max_duration_in_bars*ticks_per_bar,
             "pitch": item.pitch,
-            "duration": 2*ticks_per_bar
+            "duration": max_duration_in_bars*ticks_per_bar
         })
     items.append({
             "name": "Note",
-            "start": item.start + two_bars*2*ticks_per_bar,
+            "start": item.start + full_lengths*max_duration_in_bars*ticks_per_bar,
             "end": item.start + rest_ticks,
             "pitch": item.pitch,
             "duration": rest_ticks
         })
     return items
 
-def convert_to_note_items(path, ticks_per_bar=TICKS_PER_BEAT*4):
+def convert_to_note_items(path, max_duration_in_bars, ticks_per_bar=TICKS_PER_BEAT*4):
     midi_obj = miditoolkit.midi.parser.MidiFile(path)
     notes = midi_obj.instruments[0].notes
     notes.sort(key=lambda x: (x.start, x.pitch))
     note_items = []
     for note in notes:
         duration = note.end - note.start
-        if duration > 2*ticks_per_bar:
-            split_into_two_bar_items(note, duration, ticks_per_bar)
+        if duration > max_duration_in_bars*ticks_per_bar:
+            splitted_items = split_into_max_len_items(note, duration, max_duration_in_bars, ticks_per_bar)
+            note_items.extend(splitted_items)
         else:
             note_items.append({
                 "name": "Note",
@@ -91,9 +92,10 @@ def group_items(items, max_time, ticks_per_bar=TICKS_PER_BEAT*4):
         groups.append(overall)
     return groups
 
-def item2event(groups):
+def item2event(groups, triole_tokens, duration_steps, ticks_per_min_duration = TICKS_PER_BEAT*4/32):
     events = []
     n_downbeat = 0
+    duration_bins = np.arange(ticks_per_min_duration, (ticks_per_min_duration*duration_steps)+1, ticks_per_min_duration, dtype=int)
     for i in range(len(groups)):
         if 'Note' not in [item["name"] for item in groups[i][1:-1]]:
             continue
@@ -106,34 +108,43 @@ def item2event(groups):
             "text": n_downbeat 
         })
         for item in groups[i][1:-1]:
-
-            # position
+            ###### position ######
             flags = np.linspace(bar_st, bar_et, POSITION_STEPS, endpoint=False)
             index = np.argmin(abs(flags-item["start"]))
-            if item["start"] < flags[index]:
-                index -= 1
-            events.append({
-                "name": "Position",
-                "time": item["start"],
-                "value": f"{index+1}/{POSITION_STEPS}",
-                "text": flags[index]
-            })
-            # triole positions
-            if item["triole_shift"] == TRIOLE_POS_1:
+            # with triole tokens
+            if triole_tokens:
+                if item["start"] < flags[index]:
+                    index -= 1
                 events.append({
-                    "name": "Position-Triole",
+                    "name": "Position",
                     "time": item["start"],
-                    "value": "1",
-                    "text": flags[index]+TRIOLE_POS_1
+                    "value": f"{index+1}/{POSITION_STEPS}",
+                    "text": flags[index]
                 })
-            if item["triole_shift"] == TRIOLE_POS_2:
+                # triole positions
+                if item["triole_shift"] == TRIOLE_POS_1:
+                    events.append({
+                        "name": "Position-Triole",
+                        "time": item["start"],
+                        "value": "1",
+                        "text": flags[index]+TRIOLE_POS_1
+                    })
+                if item["triole_shift"] == TRIOLE_POS_2:
+                    events.append({
+                        "name": "Position-Triole",
+                        "time": item["start"],
+                        "value": "2",
+                        "text": flags[index]+TRIOLE_POS_2
+                    })
+            # without triole tokens quantized to nearest flag
+            else:
                 events.append({
-                    "name": "Position-Triole",
+                    "name": "Position",
                     "time": item["start"],
-                    "value": "2",
-                    "text": flags[index]+TRIOLE_POS_2
+                    "value": f"{index+1}/{POSITION_STEPS}",
+                    "text": flags[index]
                 })
-            # note tokens
+            ###### note ######
             if item["name"] == 'Note':
                 # pitch
                 events.append({
@@ -144,36 +155,48 @@ def item2event(groups):
                 })
                 # duration
                 duration = item["duration"]
-                shift_normal = min(abs(DURATION_BINS-duration))
-                shift_triole = min(abs(DURATION_BINS-duration*3))
-                if shift_normal <= shift_triole:
-                    index = np.argmin(abs(DURATION_BINS-duration))
-                    events.append({
-                        "name": "Note-Duration",
-                        "time": item["start"],
-                        "value": index+1,
-                        "text": f"{duration}/{DURATION_BINS[index]}"
-                    })
+                # with triole tokens
+                if triole_tokens:
+                    shift_normal = min(abs(duration_bins-duration))
+                    shift_triole = min(abs(duration_bins-duration*3))
+                    if shift_normal <= shift_triole:
+                        index = np.argmin(abs(duration_bins-duration))
+                        events.append({
+                            "name": "Note-Duration",
+                            "time": item["start"],
+                            "value": index+1,
+                            "text": f"{duration}/{duration_bins[index]}"
+                        })
+                    else:
+                        index = np.argmin(abs(duration_bins-duration*3))
+                        events.append({
+                            "name": "Note-Duration",
+                            "time": item["start"],
+                            "value": index+1,
+                            "text": f"{duration*3}/{duration_bins[index]}"
+                        })
+                        events.append({
+                            "name": "Note-Duration",
+                            "time": item["start"],
+                            "value": "triole",
+                            "text": f"{duration}/{duration_bins[index]}"
+                        })
+                # without triole tokens        
                 else:
-                    index = np.argmin(abs(DURATION_BINS-duration*3))
+                    index = np.argmin(abs(duration_bins-duration))
                     events.append({
                         "name": "Note-Duration",
                         "time": item["start"],
                         "value": index+1,
-                        "text": f"{duration*3}/{DURATION_BINS[index]}"
-                    })
-                    events.append({
-                        "name": "Note-Duration",
-                        "time": item["start"],
-                        "value": "triole",
-                        "text": f"{duration}/{DURATION_BINS[index]}"
+                        "text": f"{duration}/{duration_bins[index]}"
                     })
     return events
 
-def extract_events(input_path):
-    note_items = convert_to_note_items(input_path)
+def extract_events(input_path, duration_steps, triole_tokens):
+    max_len_in_bars = int(duration_steps/32)
+    note_items = convert_to_note_items(input_path, max_len_in_bars)
     note_items_shifts = compute_shifts(note_items)
     max_time = note_items_shifts[-1]["end"]
     grouped_items = group_items(note_items_shifts, max_time)
-    events = item2event(grouped_items)
+    events = item2event(grouped_items, triole_tokens, duration_steps)
     return events
