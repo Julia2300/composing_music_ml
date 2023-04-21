@@ -56,8 +56,6 @@ def trainer_gpt2_transformer(hyperparameters, tokenizer, data, dirs):
         learning_rate = hyperparameters["learning_rate"], 
         #weight_decay=0.01, # You can adjust the weight decay as needed
         #warmup_steps=1_000, # Number of warmup steps for learning rate scheduling
-        logging_dir = dirs["logging"],
-        logging_steps = 100,
         seed = 4711,
         evaluation_strategy = "epoch",
         logging_strategy = "epoch"
@@ -75,20 +73,18 @@ def trainer_gpt2_transformer(hyperparameters, tokenizer, data, dirs):
     return trainer
 
 
-def token_type(token):
-    if token in range(102, 118):
+def token_type(token, token_flags):
+    if token in range(token_flags["start_position_token"], token_flags["end_position_token"]+1):
         return "pos"
-    elif token in range(1, 37):
+    elif token in range(token_flags["start_pitch_token"], token_flags["end_pitch_token"]+1):
         return "pitch"
-    elif token in range(118, 120):
+    elif token in [token_flags["position_triole_1"], token_flags["position_triole_2"]]:
         return "ptriole"
-    elif token in range(37, 101):
+    elif token in range(token_flags["start_duration_token"], token_flags["end_duration_token"]+1):
         return "duration"
-    elif token == 101:
+    elif token == token_flags["duration_triole"]:
         return "dtriole"
     elif token == 0:
-        return "Bar"
-    elif token in range(120, 123):
         return "Bar"
     else:
         raise ValueError("Invalid token: {}".format(token))
@@ -105,17 +101,17 @@ NOTE_TYPES_following = {
     "start-pos-ptriole-pitch-duration-dtriole": [],
 }
 
-def analyze_token_sequence(seq):
+def analyze_token_sequence(seq, token_flags):
     counts = {note_type: 0 for note_type in NOTE_TYPES_following}
     current_note_type = "start"
 
     for token in seq:
 
-        if token_type(token) in NOTE_TYPES_following[current_note_type]:
-            current_note_type += "-" + token_type(token)
+        if token_type(token, token_flags) in NOTE_TYPES_following[current_note_type]:
+            current_note_type += "-" + token_type(token, token_flags)
         else:
             counts[current_note_type] += 1
-            if token_type(token) == "pos":
+            if token_type(token, token_flags) == "pos":
                 current_note_type = "start-pos"
             else:
                 current_note_type = "start"
@@ -193,7 +189,7 @@ def write_midi(tokens, token2word, duration_bins, output_path):
                 incorrect_notes += 1
                 continue
             # duration
-            if events[i+n+3]["name"] == 'Note-Duration' and events[i+n+3]["value"] == 'triole':
+            if i < len(events)-4 and events[i+n+3]["name"] == 'Note-Duration' and events[i+n+3]["value"] == 'triole':
                 index = int(events[i+n+2]["value"])-1
                 duration = int(duration_bins[index] / 3)
             else:
