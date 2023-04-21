@@ -227,3 +227,33 @@ def write_midi(tokens, token2word, duration_bins, output_path):
     print("midi saved in {}".format(output_path))
     print("Number of incorrect notes: {}".format(incorrect_notes))
     return incorrect_notes
+
+
+####### for predictions #######
+def get_token_flags(vocab_config):
+    pitch_range = vocab_config["pitch_range"]
+    duration_steps = vocab_config["duration_steps"]
+    token_flags = {
+            "start_pitch_token": 1,
+            "end_pitch_token": pitch_range,
+            "start_duration_token": pitch_range+1,
+            "end_duration_token": pitch_range+duration_steps,
+        }
+
+    if vocab_config["triole_tokens"]:
+        token_flags.update({
+            "duration_triole": pitch_range+duration_steps+1,
+            "start_position_token": pitch_range+duration_steps+2,
+            "end_position_token": pitch_range+duration_steps+17,
+            "position_triole_1": pitch_range+duration_steps+18,
+            "position_triole_2": pitch_range+duration_steps+19,
+        })
+    else:
+        token_flags.update({
+            "duration_triole": -100,
+            "start_position_token": pitch_range+duration_steps+1,
+            "end_position_token": pitch_range+duration_steps+16,
+            "position_triole_1": -100,
+            "position_triole_2": -100,
+        })
+    return token_flags
