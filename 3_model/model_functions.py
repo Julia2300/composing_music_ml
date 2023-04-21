@@ -140,6 +140,7 @@ def predict(model, tokenizer, prompt="Bar_None", samples=5, max_length=100):
     return outputs
 
 
+######### back tokenizing #########
 def token_to_event(tokens, token2word):
     events = []
     for token in tokens:
@@ -152,6 +153,10 @@ def token_to_event(tokens, token2word):
         })
     return events
 
+TICKS_PER_BEAT = 1024
+TRIOLE_POS_1 = (TICKS_PER_BEAT/12).__round__()
+TRIOLE_POS_2 = (TICKS_PER_BEAT/6).__round__()
+
 def get_position_triole(flags, position, triole_position):
     if triole_position == 0:
         st = flags[position]
@@ -161,21 +166,13 @@ def get_position_triole(flags, position, triole_position):
         st = flags[position] + TRIOLE_POS_2
     return st
 
-MIN_DURATION_DENOMINATOR = 32
-DURATION_STEPS = 64
-POSITION_STEPS = 16
-TICKS_PER_BEAT = 1024
-TRIOLE_POS_1 = (TICKS_PER_BEAT/12).__round__()
-TRIOLE_POS_2 = (TICKS_PER_BEAT/6).__round__()
-TICKS_PER_MIN_DURATION = TICKS_PER_BEAT*4/MIN_DURATION_DENOMINATOR
-DURATION_BINS = np.arange(TICKS_PER_MIN_DURATION, (TICKS_PER_MIN_DURATION*DURATION_STEPS)+1, TICKS_PER_MIN_DURATION, dtype=int)
 
-def write_midi(tokens, token2word, output_path):
+def write_midi(tokens, token2word, duration_bins, output_path):
     events = token_to_event(tokens, token2word)
     # get downbeat and note (no time)
     incorrect_notes = 0
     temp_notes = []
-    for i in range(len(events)-4):
+    for i in range(len(events)-3):
         if events[i]["name"] == 'Bar' and i > 0:
             temp_notes.append('Bar')
         elif events[i]["name"] == 'Position':
@@ -198,10 +195,10 @@ def write_midi(tokens, token2word, output_path):
             # duration
             if events[i+n+3]["name"] == 'Note-Duration' and events[i+n+3]["value"] == 'triole':
                 index = int(events[i+n+2]["value"])-1
-                duration = int(DURATION_BINS[index] / 3)
+                duration = int(duration_bins[index] / 3)
             else:
                 index = int(events[i+n+2]["value"])-1
-                duration = DURATION_BINS[index]
+                duration = duration_bins[index]
             # adding
             temp_notes.append([position, triole_position ,pitch, duration])
     # get specific time for notes
@@ -216,7 +213,7 @@ def write_midi(tokens, token2word, output_path):
             # position (start time)
             current_bar_st = current_bar * ticks_per_bar
             current_bar_et = (current_bar + 1) * ticks_per_bar
-            flags = np.linspace(current_bar_st, current_bar_et, POSITION_STEPS, endpoint=False, dtype=int)
+            flags = np.linspace(current_bar_st, current_bar_et, 16, endpoint=False, dtype=int)
             st = get_position_triole(flags, position, triole_position)
             # duration (end time)
             et = st + duration
