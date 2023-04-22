@@ -10,6 +10,35 @@ def get_file_and_dirnames(p):
         break
     return f,d
 
+def get_token_flags(vocab_config):
+    pitch_range = vocab_config["pitch_range"]
+    duration_steps = vocab_config["duration_steps"]
+    token_flags = {
+            "start_pitch_token": 1,
+            "end_pitch_token": pitch_range,
+            "start_duration_token": pitch_range+1,
+            "end_duration_token": pitch_range+duration_steps,
+        }
+
+    if vocab_config["triole_tokens"]:
+        token_flags.update({
+            "duration_triole": pitch_range+duration_steps+1,
+            "start_position_token": pitch_range+duration_steps+2,
+            "end_position_token": pitch_range+duration_steps+17,
+            "position_triole_1": pitch_range+duration_steps+18,
+            "position_triole_2": pitch_range+duration_steps+19,
+        })
+    else:
+        token_flags.update({
+            "duration_triole": -100,
+            "start_position_token": pitch_range+duration_steps+1,
+            "end_position_token": pitch_range+duration_steps+16,
+            "position_triole_1": -100,
+            "position_triole_2": -100,
+        })
+    return token_flags
+
+##### token filter functions #####
 def get_tokens(token_sequence, start_token, end_token):
     tokens = []
     for token in token_sequence:
@@ -76,7 +105,7 @@ def inter_onset_intervals(positions_bar):
         positions = positions_bar[i]
         for j in range(len(positions)-1):
             onset_intervals.append(positions[j+1]-positions[j])
-        if i < len(positions_bar)-1:
+        if i < len(positions_bar)-1 and len(positions_bar[i+1]) > 0 and len(positions) > 0:
             onset_intervals.append(positions_bar[i+1][0]-positions[-1]+16)
     return onset_intervals
 
@@ -114,6 +143,7 @@ def get_metrics_for_multiple_sequences(token_data, token_flags):
         "pitch_intervals_hist": [],
         "pitch_class_hist_numbers": [],
         "pitch_class_hist_pitches": [],
+        "crooked_pitch_count": [],
         "pitch_class_transition_matrix": [],
         "note_count_seq": [],
         "note_count_bar": [],
@@ -152,6 +182,12 @@ def get_metrics_for_multiple_sequences(token_data, token_flags):
         evaluation_metrics["pitch_class_hist_pitches"].append(pitch_class_count)
 
         evaluation_metrics["pitch_class_transition_matrix"].append(pitch_class_transition_matrix(pitches))
+
+        crooked_pitches = ["C#", "D#", "F#", "G#", "A#"]
+        crooked_pitch_count = 0
+        for pitch in crooked_pitches:
+            crooked_pitch_count += pitch_class_count[pitch]
+        evaluation_metrics["crooked_pitch_count"].append(crooked_pitch_count)
 
         # rythm based metrics
         evaluation_metrics["note_count_seq"].append(note_count_seq(pitches))
