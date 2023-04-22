@@ -159,7 +159,7 @@ def get_metrics_for_multiple_sequences(token_data, token_flags):
         pitches_bar = get_tokens_bar(token_seq, 0, pitch_start_token, pitch_end_token)
         positions_bar = get_tokens_bar(token_seq, 0, start_position_token, end_position_token)
         durations = get_tokens(token_seq, start_duration_token, end_duration_token)
-
+        
         # pitch based metrics
         evaluation_metrics["pitch_count_seq"].append(pitch_count_seq(pitches))
         pitch_counts_bar = pitch_count_bar(pitches_bar)
