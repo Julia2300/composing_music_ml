@@ -134,6 +134,7 @@ def get_metrics_for_multiple_sequences(token_data, token_flags):
     duration_bins = end_duration_token-start_duration_token+1
 
     evaluation_metrics = {
+        "mean_pitch": [],
         "pitch_count_seq": [],
         "pitch_count_bar": [],
         "pitch_range_seq": [],
@@ -149,6 +150,7 @@ def get_metrics_for_multiple_sequences(token_data, token_flags):
         "note_count_bar": [],
         "onset_intervals_avg": [],
         "onset_intervals_hist": [],
+        "mean_duration": [],
         "note_length_hist_numbers": [],
         "note_length_hist_bins": [],
         "note_length_transition_matrix": [],
@@ -161,6 +163,8 @@ def get_metrics_for_multiple_sequences(token_data, token_flags):
         durations = get_tokens(token_seq, start_duration_token, end_duration_token)
         
         # pitch based metrics
+        evaluation_metrics["mean_pitch"].append(np.round(np.mean(pitches), 2))
+
         evaluation_metrics["pitch_count_seq"].append(pitch_count_seq(pitches))
         pitch_counts_bar = pitch_count_bar(pitches_bar)
         evaluation_metrics["pitch_count_bar"].append(np.round(np.mean(pitch_counts_bar), 2))
@@ -197,6 +201,8 @@ def get_metrics_for_multiple_sequences(token_data, token_flags):
         onset_intervals = inter_onset_intervals(positions_bar)
         evaluation_metrics["onset_intervals_avg"].append(np.round(np.mean(onset_intervals), 2))
         evaluation_metrics["onset_intervals_hist"].append(np.bincount(np.abs(onset_intervals), minlength=32))
+
+        evaluation_metrics["mean_duration"].append(np.round(np.mean(durations), 2))
 
         note_lengths = note_length_histogram(durations, start_duration_token)
         note_lengths_count = {}
