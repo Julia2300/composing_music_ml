@@ -203,7 +203,7 @@ def get_metrics_for_multiple_sequences(token_data, token_flags):
         evaluation_metrics["onset_intervals_avg"].append(np.round(np.mean(onset_intervals), 2))
         evaluation_metrics["onset_intervals_hist"].append(np.bincount(np.abs(onset_intervals), minlength=32))
 
-        evaluation_metrics["mean_duration"].append(np.round(np.mean(durations), 2))
+        evaluation_metrics["mean_duration"].append(np.round(np.mean([dur-start_duration_token+1 for dur in durations]), 2))
 
         note_lengths = note_length_histogram(durations, start_duration_token)
         note_lengths_count = {}
