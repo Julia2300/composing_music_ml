@@ -132,6 +132,7 @@ def get_metrics_for_multiple_sequences(token_data, token_flags):
     start_position_token = token_flags["start_position_token"]
     end_position_token = token_flags["end_position_token"]
     duration_bins = end_duration_token-start_duration_token+1
+    pitch_range = pitch_end_token-pitch_start_token+1
 
     evaluation_metrics = {
         "mean_pitch": [],
@@ -176,7 +177,7 @@ def get_metrics_for_multiple_sequences(token_data, token_flags):
         intervals = pitch_intervals(pitches)
         evaluation_metrics["pitch_intervals_avg"].append(np.round(np.mean(intervals), 2))
         evaluation_metrics["pitch_intervals_avg_abs"].append(np.round(np.mean(np.abs(intervals)), 2))
-        evaluation_metrics["pitch_intervals_hist"].append(np.bincount(np.abs(intervals), minlength=36))
+        evaluation_metrics["pitch_intervals_hist"].append(np.bincount(np.abs(intervals), minlength=pitch_range))
 
         pitch_classes = pitch_class_histogram(pitches)
         pitch_class_count = {}
