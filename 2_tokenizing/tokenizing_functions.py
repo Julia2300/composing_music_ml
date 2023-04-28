@@ -200,3 +200,15 @@ def extract_events(input_path, duration_steps, triole_tokens):
     grouped_items = group_items(note_items_shifts, max_time)
     events = item2event(grouped_items, triole_tokens, duration_steps)
     return events
+
+def transform_to_prompt(words, max_bars=2):
+    prompt = []
+    bar = 0
+    for word in words:
+        if bar <= max_bars:
+            if word == "Bar_None":
+                bar += 1
+            prompt.append(word)
+        else:
+            break
+    return prompt
