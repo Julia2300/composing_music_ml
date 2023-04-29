@@ -87,7 +87,8 @@ def token_type(token, token_flags):
     elif token == 0:
         return "Bar"
     else:
-        raise ValueError("Invalid token: {}".format(token))
+        print("Invalid token: {}".format(token))
+        return "invalid"
         
 NOTE_TYPES_following = {
     "start": ["pos"],
