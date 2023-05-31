@@ -236,3 +236,17 @@ def summarize_evaluation_sequences(evaluation_metrics):
             averaged_and_added_evaluation_metrics[key] = added_array
     return averaged_and_added_evaluation_metrics
 
+def std_evaluation_sequences(evaluation_metrics):
+    std_evaluation_metrics = {}
+    for key in evaluation_metrics.keys():
+        shape = np.array(evaluation_metrics[key]).shape
+        if len(shape) == 1:
+            if type(evaluation_metrics[key][0]) != dict:
+                std_evaluation_metrics[key] = np.round(np.std(evaluation_metrics[key]), 2)
+            elif type(evaluation_metrics[key][0]) == dict:
+                std_evaluation_metrics[key] = "not mean"
+        else:
+            std_evaluation_metrics[key] = "not mean"
+    return std_evaluation_metrics
+
+
