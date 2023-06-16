@@ -5,7 +5,7 @@ from music21 import pitch, converter, interval, midi
 
 def change_to_4_4_metric_and_120_bpm(mid, ticks_per_beat):
     """
-    converts time metric of a MIDI file to 4/4, cuts empty bars at beginning and changes tempo to 120 bpm
+    Converts time metric of a MIDI file to 4/4, cuts empty bars at beginning and changes tempo to 120 bpm.
 
     :param mid: MIDI file in mido format
     :param ticks_per_beat: ticks per beat of MIDI file
@@ -63,7 +63,7 @@ def change_to_4_4_metric_and_120_bpm(mid, ticks_per_beat):
 
 def transpose_to_Cmaj_Amin(stream):
     """
-    transposes music stream to Cmajor or Aminor
+    Transposes music stream to Cmajor or Aminor.
 
     :param stream: MIDI file in music21 stream format
     :return: transposed MIDI file in music21 stream format
@@ -81,7 +81,7 @@ def transpose_to_Cmaj_Amin(stream):
 
 def transpose_to_octave_4_to_6(stream):
     """
-    transposes music stream to start in octave 4
+    Transposes music stream to start in octave 4.
 
     :param stream: MIDI file in music21 stream format
     :return: transposed MIDI file in music21 stream format

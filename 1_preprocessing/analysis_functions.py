@@ -6,6 +6,12 @@ from tqdm import tqdm
 # analysis on midi file level
 
 def get_midi_analysis(mid):
+    """
+    Get MIDI file analysis on a file level.
+
+    :param mid: Mido MidiFile object
+    :return: Dictionary with analysis information including type, length in seconds, ticks per beat, and track count
+    """
     return {
         "type": mid.type,
         "length_sec": mid.length.__round__(2),
@@ -15,8 +21,13 @@ def get_midi_analysis(mid):
 
 # convert midi file to dataframe
 
-# von woanders und abgeändert
 def midi2pandas(mid):
+    """
+    Convert MIDI file to a pandas DataFrame.
+
+    :param mid: Mido MidiFile object
+    :return: Two DataFrames: one for song messages and one for meta messages
+    """
     song=[]
     meta=[]
     for j in range(len(mid.tracks)):
@@ -43,6 +54,12 @@ def midi2pandas(mid):
 # analysis on dataframe level
 
 def get_meta_analysis(df):
+    """
+    Analyze meta information from DataFrame.
+
+    :param df: DataFrame containing MIDI meta messages
+    :return: Dictionary with metrics related to time signature, key signature, and tempo
+    """
     # time signature metrics
     try:
         num = df[df["type"]=="time_signature"]["numerator"].iloc[0]
@@ -85,7 +102,15 @@ def get_meta_analysis(df):
     }
 
 def get_note_analysis(df, ticks_per_beat):
+    """
+    Analyze note information from a DataFrame.
 
+    :param df: DataFrame containing MIDI song messages
+    :param ticks_per_beat: Number of ticks per beat in the MIDI file
+    :return: Dictionary with metrics related to pitch, velocity, and duration of notes
+    """
+
+    # pitch metrics
     note_df = df[df["note"] > 0]
     note_series = note_df["note"]
     note_lowest = note_series.min()
@@ -93,12 +118,14 @@ def get_note_analysis(df, ticks_per_beat):
     note_avg = note_series.mean().round()
     note_variation_count = len(note_series.unique())
 
+    # velocity metrics
     vel_series = df[df["velocity"] > 0]["velocity"]
     vel_lowest = vel_series.min()
     vel_highest = vel_series.max()
     vel_avg = vel_series.mean().round()
     vel_same = len(vel_series.unique()) == 1
 
+    # duration metrics
     duration_series = note_df[note_df["time"] > 0]["time"]
     duration_lowest = duration_series.min()/ticks_per_beat
     duration_highest = duration_series.max()/ticks_per_beat
@@ -119,14 +146,18 @@ def get_note_analysis(df, ticks_per_beat):
     }
 
 def monophonic_overlap_analysis(df):
+    """
+    Analyze monophonic and overlap information from a DataFrame.
+
+    :param df: DataFrame containing MIDI song messages
+    :return: Dictionary with monophonic and overlap information
+    """
     channel_polyphonic = {channel:False for channel in df["channel"].unique()}
     channel_overlap = {channel:False for channel in df["channel"].unique()}
     for channel in channel_polyphonic:
         channel_df = df[df["channel"] == channel]
         notes_playing = 0
         for time_abs in channel_df["time_abs"].unique():
-            #if time_abs == 0:
-            #    continue
             time_df = channel_df[channel_df["time_abs"] == time_abs].sort_values("velocity")
             # check whether 2 notes start at the same time
             if len(time_df[time_df["velocity"] > 0]) > 1:
@@ -147,6 +178,12 @@ def monophonic_overlap_analysis(df):
 # create analysis
 
 def compute_metrics_over_dataframe(df):
+    """
+    Compute metrics over a DataFrame.
+
+    :param df: DataFrame to compute metrics on
+    :return: DataFrame with mean, min, max values for each column
+    """
     mean_row = {col: "" for col in df.columns}
     mean_row["name"] = "mean"
     min_row = {col: "" for col in df.columns}
@@ -168,6 +205,13 @@ def compute_metrics_over_dataframe(df):
     return df
 
 def analyse_data_folder(path, compute_metrics = True):
+    """
+    Analyze MIDI files in a given directory.
+
+    :param path: Path of the directory containing MIDI files
+    :param compute_metrics: Whether to compute mean, min, max values (default is True)
+    :return: DataFrame with analysis results
+    """
     files,_ = get_file_and_dirnames(path)
     df = pd.DataFrame()
     for file in tqdm(files):
