@@ -5,15 +5,33 @@ import numpy as np
 
 
 class PaddedDataset(Dataset):
+    """
+    Dataset class for managing and fetching tokenized and padded sequences.
+
+    :param tokenizer: The tokenizer object responsible for tokenization
+    :param data: List of input sequences
+    :param max_length: The maximum length of the sequences after padding
+    """
     def __init__(self, tokenizer, data, max_length):
         self.tokenizer = tokenizer
         self.data = data
         self.max_length = max_length
 
     def __len__(self):
+        """
+        Returns the total number of input sequences in the dataset.
+        
+        :return: The number of input sequences in the dataset
+        """
         return len(self.data)
 
     def __getitem__(self, index):
+        """
+        Fetches a tokenized and padded input sequence along with its attention mask and labels.
+
+        :param index: The index of the required sequence in the dataset
+        :return: A dictionary containing input_ids, attention_mask and labels for the given sequence
+        """
         inputs = self.tokenizer.encode_plus(
             self.data[index].split(" "),
             add_special_tokens=True,
@@ -30,6 +48,15 @@ class PaddedDataset(Dataset):
     
     
 def trainer_gpt2_transformer(hyperparameters, tokenizer, data, dirs):
+    """
+    Trains a GPT-2 transformer model with given hyperparameters, tokenizer and data.
+
+    :param hyperparameters: Dictionary containing all the model and training hyperparameters
+    :param tokenizer: Tokenizer used to encode the input sequences
+    :param data: Dictionary containing the training and validation datasets
+    :param dirs: Dictionary containing directories for saving model outputs and logs
+    :return: Trainer object with a trained model
+    """
 
     # define model config and model
     config = GPT2Config(
@@ -74,6 +101,13 @@ def trainer_gpt2_transformer(hyperparameters, tokenizer, data, dirs):
 
 
 def token_type(token, token_flags):
+    """
+    Determines the type of a given token based on the range it falls into.
+
+    :param token: The token to be classified
+    :param token_flags: Dictionary containing the start and end of each token type range
+    :return: The type of the given token as a string
+    """
     if token in range(token_flags["start_position_token"], token_flags["end_position_token"]+1):
         return "pos"
     elif token in range(token_flags["start_pitch_token"], token_flags["end_pitch_token"]+1):
@@ -103,6 +137,13 @@ NOTE_TYPES_following = {
 }
 
 def analyze_token_sequence(seq, token_flags):
+    """
+    Analyzes a sequence of tokens and counts the number of each type of token sequence.
+
+    :param seq: List of tokens
+    :param token_flags: Dictionary containing the start and end of each token type range
+    :return: Dictionary with counts of each type of token sequence
+    """
     counts = {note_type: 0 for note_type in NOTE_TYPES_following}
     current_note_type = "start"
 
@@ -122,6 +163,16 @@ def analyze_token_sequence(seq, token_flags):
 
 
 def predict(model, tokenizer, prompt="Bar_None", samples=5, max_length=100):
+    """
+    Generates a sequence of tokens based on a given prompt.
+
+    :param model: Trained language model
+    :param tokenizer: Tokenizer used to encode the input sequences
+    :param prompt: Initial sequence to start generating from
+    :param samples: Number of sequences to generate
+    :param max_length: Maximum length of the generated sequences
+    :return: List of generated sequences
+    """
     # convert prompt into tensor
     inputs = tokenizer.encode(prompt.split(" "), return_tensors="pt")
     inputs = inputs.to("cpu")
@@ -138,7 +189,15 @@ def predict(model, tokenizer, prompt="Bar_None", samples=5, max_length=100):
 
 
 ######### back tokenizing #########
+
 def token_to_event(tokens, token2word):
+    """
+    Converts a sequence of tokens into a sequence of musical events.
+
+    :param tokens: List of tokens
+    :param token2word: Dictionary mapping tokens to their corresponding words
+    :return: List of dictionaries representing the musical events
+    """
     events = []
     for token in tokens:
         event_name, event_value = token2word.get(token).split('_')
@@ -155,6 +214,14 @@ TRIOLE_POS_1 = (TICKS_PER_BEAT/12).__round__()
 TRIOLE_POS_2 = (TICKS_PER_BEAT/6).__round__()
 
 def get_position_triole(flags, position, triole_position):
+    """
+    Determines the start time for a note based on its position bin and triplet position.
+
+    :param flags: List of position bins in a bar
+    :param position: Index of the note's position bin
+    :param triole_position: Indicates whether the note is shifted to be a triplet (0 = no shift, 1 = one triplet shif, 2 = two triplet shift)
+    :return: Start time for the note
+    """
     if triole_position == 0:
         st = flags[position]
     elif triole_position == 1:
@@ -165,6 +232,15 @@ def get_position_triole(flags, position, triole_position):
 
 
 def write_midi(tokens, token2word, duration_bins, output_path):
+    """
+    Writes a sequence of tokens into a MIDI file.
+
+    :param tokens: List of tokens
+    :param token2word: Dictionary mapping tokens to their corresponding words
+    :param duration_bins: List of possible duration bins for the notes
+    :param output_path: Path to save the generated MIDI file
+    :return: Number of incorrect notes found in the tokens sequence
+    """
     events = token_to_event(tokens, token2word)
     # get downbeat and note (no time)
     incorrect_notes = 0
@@ -231,7 +307,14 @@ def write_midi(tokens, token2word, duration_bins, output_path):
 
 
 ####### for predictions #######
+
 def get_token_flags(vocab_config):
+    """
+    Generates a dictionary with the start and end of each token type range.
+
+    :param vocab_config: Dictionary containing the vocabulary configuration
+    :return: Dictionary containing the start and end of each token type range
+    """
     pitch_range = vocab_config["pitch_range"]
     duration_steps = vocab_config["duration_steps"]
     token_flags = {
