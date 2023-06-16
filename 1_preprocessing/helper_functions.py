@@ -4,10 +4,10 @@ from os import walk
 
 def get_file_and_dirnames(p):
     """
-    Traverse the specified directory and get lists of filenames and directory names.
+    Get filenames and directory names in a given directory.
 
-    :param p: path of the directory to traverse
-    :return: a tuple containing a list of filenames and a list of directory names in the specified directory
+    :param p: path of directory
+    :return: list of filenames, list of directory names
     """
     f = []
     d = []

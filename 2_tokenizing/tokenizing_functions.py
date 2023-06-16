@@ -11,8 +11,19 @@ TRIOLE_POS_2 = (TICKS_PER_BEAT/6).__round__()
 TICKS_PER_MIN_DURATION = TICKS_PER_BEAT*4/MIN_DURATION_DENOMINATOR
 DURATION_BINS = np.arange(TICKS_PER_MIN_DURATION, (TICKS_PER_MIN_DURATION*DURATION_STEPS)+1, TICKS_PER_MIN_DURATION, dtype=int)
 
+####################################################################################################
+# This tokenization is a variation of the REMI tokenization format.
+# Thus, parts of the tokenization code are inspired by the REMI tokenization code:
+# https://github.com/YatingMusic/remi
+####################################################################################################
 
 def get_file_and_dirnames(p):
+    """
+    Get filenames and directory names in a given directory.
+
+    :param p: path of directory
+    :return: list of filenames, list of directory names
+    """
     f = []
     d = []
     for (dirpath, dirnames, filenames) in walk(p):
@@ -22,6 +33,15 @@ def get_file_and_dirnames(p):
     return f,d
 
 def split_into_max_len_items(item, duration, max_duration_in_bars, ticks_per_bar=TICKS_PER_BEAT*4):
+    """
+    Split a musical item into smaller items if its duration is longer than the maximum duration limit.
+
+    :param item: a musical item, which is a dictionary with 'start', 'end', and 'pitch' keys
+    :param duration: duration of the item
+    :param max_duration_in_bars: maximum duration limit in bars
+    :param ticks_per_bar: number of ticks per bar
+    :return: list of smaller items
+    """
     items = [] 
     full_lengths = duration // (max_duration_in_bars*ticks_per_bar)
     rest_ticks = duration % (max_duration_in_bars*ticks_per_bar)
@@ -43,6 +63,14 @@ def split_into_max_len_items(item, duration, max_duration_in_bars, ticks_per_bar
     return items
 
 def convert_to_note_items(path, max_duration_in_bars, ticks_per_bar=TICKS_PER_BEAT*4):
+    """
+    Convert a MIDI file into a list of note items.
+
+    :param path: path of the MIDI file
+    :param max_duration_in_bars: maximum duration limit in bars
+    :param ticks_per_bar: number of ticks per bar
+    :return: list of note items
+    """
     midi_obj = miditoolkit.midi.parser.MidiFile(path)
     notes = midi_obj.instruments[0].notes
     notes.sort(key=lambda x: (x.start, x.pitch))
@@ -65,6 +93,13 @@ def convert_to_note_items(path, max_duration_in_bars, ticks_per_bar=TICKS_PER_BE
 
 
 def compute_shifts(items, ticks_per_position=1024*4/POSITION_STEPS):
+    """
+    Compute the shifts from each item's start time to the nearest grid position, considering triplet positions.
+
+    :param items: list of items, each item is a dictionary with 'start' and 'end' keys
+    :param ticks_per_position: number of ticks per grid position
+    :return: list of items with 'triole_shift' key added
+    """
     #grid
     grids = np.arange(0, items[-1]["start"]+1, ticks_per_position, dtype=int)
     # process
@@ -80,6 +115,14 @@ def compute_shifts(items, ticks_per_position=1024*4/POSITION_STEPS):
     return items 
 
 def group_items(items, max_time, ticks_per_bar=TICKS_PER_BEAT*4):
+    """
+    Group items by their start time into bars.
+
+    :param items: list of items
+    :param max_time: maximum time (end time of the last item)
+    :param ticks_per_bar: number of ticks per bar
+    :return: list of groups, each group is a list of items in a bar
+    """
     items.sort(key=lambda x: x["start"])
     downbeats = np.arange(0, max_time+ticks_per_bar, ticks_per_bar)
     groups = []
@@ -93,6 +136,15 @@ def group_items(items, max_time, ticks_per_bar=TICKS_PER_BEAT*4):
     return groups
 
 def item2event(groups, triole_tokens, duration_steps, ticks_per_min_duration = TICKS_PER_BEAT*4/32):
+    """
+    Convert grouped items into events, considering triole tokens.
+
+    :param groups: list of groups, each group is a list of items in a bar
+    :param triole_tokens: flag indicating whether to consider triole tokens
+    :param duration_steps: number of duration steps
+    :param ticks_per_min_duration: number of ticks per minimum duration
+    :return: list of events
+    """
     events = []
     n_downbeat = 0
     duration_bins = np.arange(ticks_per_min_duration, (ticks_per_min_duration*duration_steps)+1, ticks_per_min_duration, dtype=int)
@@ -193,6 +245,14 @@ def item2event(groups, triole_tokens, duration_steps, ticks_per_min_duration = T
     return events
 
 def extract_events(input_path, duration_steps, triole_tokens):
+    """
+    Extract events from a MIDI file.
+
+    :param input_path: path of the MIDI file
+    :param duration_steps: number of duration steps
+    :param triole_tokens: flag indicating whether to consider triole tokens
+    :return: list of events
+    """
     max_len_in_bars = int(duration_steps/32)
     note_items = convert_to_note_items(input_path, max_len_in_bars)
     note_items_shifts = compute_shifts(note_items)
@@ -202,6 +262,13 @@ def extract_events(input_path, duration_steps, triole_tokens):
     return events
 
 def transform_to_prompt(words, max_bars=2):
+    """
+    Transform a list of words into a prompt, limiting the number of bars.
+
+    :param words: list of words
+    :param max_bars: maximum number of bars
+    :return: list of words as a prompt
+    """
     prompt = []
     bar = 0
     for word in words:
