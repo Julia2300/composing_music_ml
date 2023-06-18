@@ -2,6 +2,12 @@ import numpy as np
 from os import walk
 
 def get_file_and_dirnames(p):
+    """
+    Get filenames and directory names in a given directory.
+
+    :param p: path of directory
+    :return: list of filenames, list of directory names
+    """
     f = []
     d = []
     for (dirpath, dirnames, filenames) in walk(p):
@@ -11,6 +17,12 @@ def get_file_and_dirnames(p):
     return f,d
 
 def get_token_flags(vocab_config):
+    """
+    Generates a dictionary with the start and end of each token type range.
+
+    :param vocab_config: Dictionary containing the vocabulary configuration
+    :return: Dictionary containing the start and end of each token type range
+    """
     pitch_range = vocab_config["pitch_range"]
     duration_steps = vocab_config["duration_steps"]
     token_flags = {
@@ -39,7 +51,16 @@ def get_token_flags(vocab_config):
     return token_flags
 
 ##### token filter functions #####
+
 def get_tokens(token_sequence, start_token, end_token):
+    """
+    Get all tokens within a specified token id range from a sequence.
+
+    :param token_sequence: sequence of tokens
+    :param start_token: start of range
+    :param end_token: end of range
+    :return: list of tokens within specified range
+    """
     tokens = []
     for token in token_sequence:
         if token in range(start_token, end_token+1):
@@ -47,6 +68,15 @@ def get_tokens(token_sequence, start_token, end_token):
     return tokens
 
 def get_tokens_bar(token_sequence, bar_token, start_token, end_token):
+    """
+    Get all tokens within a specified token id range from a sequence, grouped by bars.
+
+    :param token_sequence: sequence of tokens
+    :param bar_token: bar token value
+    :param start_token: start of range
+    :param end_token: end of range
+    :return: list of tokens within specified range, grouped by bars
+    """
     tokens = []
     i = -1
     for token in token_sequence:
@@ -59,31 +89,73 @@ def get_tokens_bar(token_sequence, bar_token, start_token, end_token):
 
 ##### pitch based metrics #####
 def pitch_count_seq(pitches):
+    """
+    Get the count of unique pitches in a sequence.
+
+    :param pitches: List of pitches in a sequence
+    :return: Count of unique pitches
+    """
     return len(list(set(pitches)))
 
 def pitch_count_bar(bar_pitches):
+    """
+    Get the count of unique pitches in each bar.
+
+    :param bar_pitches: List of lists, where each list represents a bar and contains pitches
+    :return: List of unique pitch counts for each bar
+    """
     pitches = [list(set(bar)) for bar in bar_pitches]
     pitch_counts = [len(bar_pitches) for bar_pitches in pitches]
     return pitch_counts
 
 def pitch_range_seq(pitches):
+    """
+    Get the range of pitches in a sequence.
+
+    :param pitches: List of pitches in a sequence
+    :return: Range of pitches
+    """
     return max(pitches) - min(pitches)
 
 def pitch_range_bar(pitches_bar):
+    """
+    Get the range of pitches in each bar.
+
+    :param pitches_bar: List of lists, where each list represents a bar and contains pitches
+    :return: List of pitch ranges for each bar
+    """
     return [max(bar) - min(bar) for bar in pitches_bar if len(bar)>0]
 
 def pitch_intervals(pitches):
+    """
+    Calculate the intervals between successive pitches in a sequence.
+
+    :param pitches: List of pitches in a sequence
+    :return: List of pitch intervals
+    """
     pitch_intervals = []
     for i in range(len(pitches)-1):
         pitch_intervals.append(pitches[i+1]-pitches[i])
     return pitch_intervals
 
 def pitch_class_histogram(pitches):
+    """
+    Get the histogram of pitch classes in a sequence.
+
+    :param pitches: List of pitches in a sequence
+    :return: Histogram of pitch classes
+    """
     pitch_classes = [(pitch-1) % 12 for pitch in pitches]
     pitch_classes = np.bincount(pitch_classes, minlength=12)
     return pitch_classes
 
 def pitch_class_transition_matrix(pitches):
+    """
+    Get the transition matrix for pitch classes in a sequence.
+
+    :param pitches: List of pitches in a sequence
+    :return: Transition matrix for pitch classes
+    """
     transition_matrix = np.zeros([12,12], dtype=int)
     pitch_classes = [(pitch-1) % 12 for pitch in pitches]
     for i in range(len(pitch_classes)-1):
@@ -93,13 +165,31 @@ def pitch_class_transition_matrix(pitches):
 
 ##### position based metrics #####
 def note_count_seq(pitches):
+    """
+    Get the count of notes in a sequence.
+
+    :param pitches: List of pitches in a sequence
+    :return: Count of notes
+    """
     return len(pitches)
 
 def note_count_bar(pitches_bar):
+    """
+    Get the count of notes in each bar.
+
+    :param pitches_bar: List of lists, where each list represents a bar and contains pitches
+    :return: List of note counts for each bar
+    """
     note_counts = [len(bar) for bar in pitches_bar]
     return note_counts
 
 def inter_onset_intervals(positions_bar):
+    """
+    Calculate the onset intervals in a sequence of positions.
+
+    :param positions_bar: List of lists, where each list represents a bar and contains note positions
+    :return: List of onset intervals
+    """
     onset_intervals = []
     for i in range(len(positions_bar)):
         positions = positions_bar[i]
@@ -110,11 +200,26 @@ def inter_onset_intervals(positions_bar):
     return onset_intervals
 
 def note_length_histogram(durations, start_duration_token):
+    """
+    Get the histogram of note lengths in a sequence.
+
+    :param durations: List of durations in a sequence
+    :param start_duration_token: Start duration token
+    :return: Histogram of note lengths
+    """
     note_lengths = [duration-start_duration_token for duration in durations]
     length_classes = np.bincount(note_lengths, minlength=64)
     return length_classes
 
 def note_length_transition_matrix(durations, start_duration_token, duration_bin):
+    """
+    Get the transition matrix for note lengths in a sequence.
+
+    :param durations: List of durations in a sequence
+    :param start_duration_token: Start duration token
+    :param duration_bin: Duration bins size
+    :return: Transition matrix for note lengths
+    """
     transition_matrix = np.zeros([duration_bin,duration_bin], dtype=int)
     note_lengths = [duration-start_duration_token for duration in durations]
     for i in range(len(note_lengths)-1):
@@ -124,6 +229,13 @@ def note_length_transition_matrix(durations, start_duration_token, duration_bin)
 
 ###### get all metrics together ######
 def get_metrics_for_multiple_sequences(token_data, token_flags):
+    """
+    Extract various music metrics for token sequences.
+
+    :param token_data: list of token sequences
+    :param token_flags: dictionary of tokens and their corresponding token ids
+    :return: dictionary of calculated metrics
+    """
 
     pitch_start_token = token_flags["start_pitch_token"]
     pitch_end_token = token_flags["end_pitch_token"]
@@ -218,6 +330,12 @@ def get_metrics_for_multiple_sequences(token_data, token_flags):
 
 
 def summarize_evaluation_sequences(evaluation_metrics):
+    """
+    Summarize evaluation metrics by taking the mean for each scalar metric and the sum for more-dimensional metrics across sequences.
+
+    :param evaluation_metrics: dictionary of metrics
+    :return: dictionary of averaged metrics
+    """
     averaged_and_added_evaluation_metrics = {}
     for key in evaluation_metrics.keys():
         shape = np.array(evaluation_metrics[key]).shape
@@ -237,6 +355,12 @@ def summarize_evaluation_sequences(evaluation_metrics):
     return averaged_and_added_evaluation_metrics
 
 def std_evaluation_sequences(evaluation_metrics):
+    """
+    Calculate the standard deviation of each evaluation metric across sequences.
+
+    :param evaluation_metrics: dictionary of metrics
+    :return: dictionary of standard deviations
+    """
     std_evaluation_metrics = {}
     for key in evaluation_metrics.keys():
         shape = np.array(evaluation_metrics[key]).shape
@@ -248,5 +372,3 @@ def std_evaluation_sequences(evaluation_metrics):
         else:
             std_evaluation_metrics[key] = "not mean"
     return std_evaluation_metrics
-
-

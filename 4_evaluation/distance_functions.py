@@ -1,30 +1,50 @@
-#from sklearn.model_selection import LeaveOneOut
 import numpy as np
-#import copy
-#import sklearn
 from tqdm import tqdm
 from scipy import stats, integrate
 from sklearn.model_selection import LeaveOneOut
 
+####################################################################################################
+# The distance functions are partly created by Yang and Lerch (2020).
+# The distance functions can be found here:
+# https://github.com/YatingMusic/remi
+####################################################################################################
 
 ###### distance functions ######
-# inspired by Yang and Lerch
 
 def c_dist(A, B):
+    """
+    Calculate the Euclidean distance between A and B.
+
+    :param A: metric from one set
+    :param B: metric from other set
+    :return: list of distances
+    """
     c_dist = np.zeros(len(B))
     for i in range(0, len(B)):
         c_dist[i] = np.linalg.norm(A - B[i])
     return c_dist
 
-# Calculate overlap between the two PDF
 def overlap_area(A, B):
+    """
+    Calculate overlap between two probability distribution functions (PDFs).
+
+    :param A: numpy array
+    :param B: numpy array
+    :return: area of overlap between the two PDFs
+    """
     pdf_A = stats.gaussian_kde(A)
     pdf_B = stats.gaussian_kde(B)
     return integrate.quad(lambda x: min(pdf_A(x), pdf_B(x)), np.min((np.min(A), np.min(B))), np.max((np.max(A), np.max(B))))[0]
 
-
-# Calculate KL distance between the two PDF
 def kl_dist(A, B, num_sample=1000):
+    """
+    Calculate KL divergence between two probability distribution functions (PDFs).
+
+    :param A: numpy array
+    :param B: numpy array
+    :param num_sample: number of sample points for the KL divergence calculation
+    :return: KL divergence between the two PDFs
+    """
     pdf_A = stats.gaussian_kde(A)
     pdf_B = stats.gaussian_kde(B)
     sample_A = np.linspace(np.min(A), np.max(A), num_sample)
@@ -33,6 +53,14 @@ def kl_dist(A, B, num_sample=1000):
 
 
 def get_distances(set_1, set_2, metrics):
+    """
+    Calculate the intra-set and inter-set distances for two given sets.
+
+    :param set_1: dictionary with metric names as keys and corresponding metric values as values
+    :param set_2: dictionary with metric names as keys and corresponding metric values as values
+    :param metrics: list of metric names
+    :return: arrays of intra-set and inter-set distances for each metric
+    """
     num_samples_1 = len(set_1[metrics[0]])
     num_samples_2 = len(set_2[metrics[0]])
 
@@ -74,6 +102,17 @@ def get_distances(set_1, set_2, metrics):
 
 
 def get_kl_oa_metrics(set_1, set_2, metrics, plot_set1_intra, plot_set2_intra, plot_sets_inter):
+    """
+    Calculate KL divergence and overlap area for intra-set and inter-set distances.
+
+    :param set_1: dictionary with metric names as keys and corresponding metric values as values
+    :param set_2: dictionary with metric names as keys and corresponding metric values as values
+    :param metrics: list of metric names
+    :param plot_set1_intra: intra-set distances for set_1
+    :param plot_set2_intra: intra-set distances for set_2
+    :param plot_sets_inter: inter-set distances
+    :return: a dictionary of mean, std, KL divergence, and overlap area metrics for each set
+    """
     output = {}
     for i in tqdm(range(len(metrics))):
         
@@ -105,6 +144,12 @@ def get_kl_oa_metrics(set_1, set_2, metrics, plot_set1_intra, plot_set2_intra, p
 
 ###### overlapping functions ######
 def get_bars(song):
+    """
+    Get a list of bars from a song as token sequence. 
+
+    :param song: token sequence of a song
+    :return: list of bars
+    """
     bars = []
     start = 1
     for i in range(1, len(song)):
@@ -115,6 +160,13 @@ def get_bars(song):
     return bars
 
 def get_overlapping_sequences(song1, song2):
+    """
+    Get a list of lengths of overlapping sequences between two songs.
+
+    :param song1: token sequence of a song
+    :param song2: token sequence of a song
+    :return: list of lengths of overlapping sequences
+    """
     overlapping_length = 0
     overlapping_lengths_list = []
     skips_i = []
@@ -139,6 +191,14 @@ def get_overlapping_sequences(song1, song2):
     return overlapping_lengths_list
 
 def get_overlap(token_data_1, token_data_2, bars=True):
+    """
+    Get the overlap between two sets of token data.
+
+    :param token_data_1: first set of token data
+    :param token_data_2: second set of token data
+    :param bars: boolean value indicating whether to use bars in the calculation
+    :return: lists of overlap counts and maximum overlaps
+    """
     max_overlap = []
     overlap_count = []
     for i in tqdm(range(len(token_data_1))):
